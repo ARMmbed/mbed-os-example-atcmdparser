@@ -57,7 +57,7 @@ AT= OK
 ATCmdParser: Retrieving FW version
 ATCmdParser: FW version: 2
 ATCmdParser: Retrieving FW version success
-Done
+...
 
 ```
 

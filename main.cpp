@@ -44,5 +44,59 @@ int main()
         return -1;
     }
     
+    printf("\nReset ESP8266 WiFi module");
+    for (int i = 0; i < 2; i++) {
+        if (_parser->send("AT+RST")
+            && _parser->recv("OK\r\nready")) {
+            printf("\nATCmdParser: Reseting ESP8266 success");
+        } else {
+            printf("\nATCmdParser: Reseting ESP8266 failure");
+        }
+    }
+    
+    printf("\nStarting-up ESP8266");
+    bool success = _parser->send("AT+CWMODE_CUR=%d", 1)
+        && _parser->recv("OK")
+        && _parser->send("AT+CIPMUX=1")
+        && _parser->recv("OK");
+    if( success ) {
+        printf("\nATCmdParser: Starting-up ESP8266 success");
+    } else {
+        printf("\nATCmdParser: Starting-up ESP8266 failure");
+    }      
+
+    printf("\nScan for WiFi networks");
+    unsigned cnt = 0;
+    unsigned sec = 0;
+    unsigned scan_limit = 5;
+    nsapi_wifi_ap_t ap;
+    bool ret = true;
+    
+    if (!_parser->send("AT+CWLAP")) {
+        printf("\nScan for WiFi networks failed");
+    }
+
+    do
+    {
+        ret = _parser->recv("+CWLAP:(%d,\"%32[^\"]\",%hhd,\"%hhx:%hhx:%hhx:%hhx:%hhx:%hhx\",%d", 
+                            &sec, 
+                            ap.ssid,
+                            &ap.rssi, 
+                            &ap.bssid[0], 
+                            &ap.bssid[1], 
+                            &ap.bssid[2], 
+                            &ap.bssid[3], 
+                            &ap.bssid[4],
+                            &ap.bssid[5], 
+                            &ap.channel);
+        
+
+        printf("\nSSID: %s", ap.ssid );
+        cnt++;
+        if (cnt >= scan_limit) {
+            break;
+        }
+    } while(ret);
+    
     printf("\nDone\n");
 }
