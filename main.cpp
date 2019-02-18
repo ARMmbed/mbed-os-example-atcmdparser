@@ -15,8 +15,8 @@
  */
 
 #include "mbed.h"
-#include "platform\ATCmdParser.h"
-#include "drivers\UARTSerial.h"
+#include "ATCmdParser.h"
+#include "UARTSerial.h"
 
 #define   ESP8266_DEFAULT_BAUD_RATE   115200
 
