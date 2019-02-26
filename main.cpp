@@ -1,5 +1,5 @@
 /* ATCmdParser usage example
- * Copyright (c) 2016 ARM Limited
+ * Copyright (c) 2019 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,19 +15,19 @@
  */
 
 #include "mbed.h"
-#include "platform\ATCmdParser.h"
-#include "drivers\UARTSerial.h"
+#include "ATCmdParser.h"
+#include "UARTSerial.h"
 
+#define   PARSER_MODE                 CLIENT
 #define   ESP8266_DEFAULT_BAUD_RATE   115200
 
-UARTSerial *_serial;
 ATCmdParser *_parser;
 
-int main()
+int client_func()
 {
-    printf("\nATCmdParser with ESP8266 example");
-    
-    _serial = new UARTSerial(D1, D0, ESP8266_DEFAULT_BAUD_RATE);
+    printf("\nATCmdParser Client with ESP8266 example");
+
+    UARTSerial *_serial = new UARTSerial(D1, D0, ESP8266_DEFAULT_BAUD_RATE);
     _parser = new ATCmdParser(_serial);
     _parser->debug_on( 1 );
     _parser->set_delimiter( "\r\n" );
@@ -45,4 +45,55 @@ int main()
     }
 
     printf("\nDone\n");
+    return 0;
 }
+
+void atcmd_server_cb_test()
+{
+    int val;
+    _parser->scanf(",%d;", &val);
+    _parser->send("\r\n%s: val=%d\n", __func__, val);
+}
+
+void atcmd_server_cb_run()
+{
+    _parser->send("\r\n%s: OK\n", __func__);
+}
+
+int server_func()
+{
+    Serial *_serial = new Serial(D1, D0, NULL, ESP8266_DEFAULT_BAUD_RATE);
+    _parser = new ATCmdParser(_serial);
+    _parser->debug_on(1);
+    // This will be added at the end of send().
+    _parser->set_delimiter("\r\n");
+    _parser->set_timeout(5000);
+
+    // Register AT commands.
+    // ex. +TEST,3;
+    _parser->oob("+TEST", atcmd_server_cb_test);
+    // ex. +RUN;
+    _parser->oob("+RUN", atcmd_server_cb_run);
+
+    _parser->send("READY: %s:%s\n", __DATE__, __TIME__);
+    for (;;)
+    {
+        // This internally calls getc().
+        // In order to flush the internal buffer, press enter.
+        _parser->process_oob();
+    }
+
+    return -1;
+}
+
+int main()
+{
+#if   PARSER_MODE == SERVER
+    return server_func();
+#elif PARSER_MODE == CLIENT
+    return client_func();
+#else
+    return 0;
+#endif
+}
+
